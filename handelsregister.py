@@ -179,10 +179,8 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
-    args = parse_args()
-    h = HandelsRegister(args)
-    h.open_startpage()
-    companies = h.search_company()
-    if companies is not None:
-        for c in companies:
-            pr_company_info(c)
+    import sys
+    import json
+    # Call main() with CLI args and print JSON
+    result = main(sys.argv[1:])
+    print(json.dumps(result, ensure_ascii=False))
