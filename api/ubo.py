@@ -1,23 +1,45 @@
 # api/ubo.py
+
 import json
-from flask import Flask, request, jsonify
 from handelsregister import main as hr_main
 
-app = Flask(__name__)
+def handler(request, context):
+    # Parse JSON body
+    try:
+        body = json.loads(request.body or "{}")
+    except Exception:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "Invalid JSON"}),
+            "headers": {"Content-Type": "application/json"},
+        }
 
-@app.route('/api/ubo', methods=['POST'])
-def ubo():
-    body = request.get_json() or {}
-    name = body.get('name', '').strip()
+    name = body.get("name", "").strip()
     if not name:
-        return jsonify({'error': 'Kein Name angegeben'}), 400
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "Kein Name angegeben"}),
+            "headers": {"Content-Type": "application/json"},
+        }
 
     try:
-        # Call the CLI entry-point; capture its JSON output
-        data = hr_main(['-s', name, '-so', 'all', '-f'])
-        # hr_main should return a Python dict; if it prints JSON, parse it:
-        if isinstance(data, str):
-            data = json.loads(data)
-        return jsonify(data)
+        # Call the CLI entrypoint with: -s <search> -so all -f (JSON output)
+        result = hr_main(["-s", name, "-so", "all", "-f"])
+        # If hr_main prints JSON to stdout, it may return None: in that case,
+        # you’d need to capture stdout instead. But ideally hr_main() returns a dict.
+        if isinstance(result, str):
+            data = json.loads(result)
+        else:
+            data = result
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps(data, ensure_ascii=False),
+            "headers": {"Content-Type": "application/json"},
+        }
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)}),
+            "headers": {"Content-Type": "application/json"},
+        }
